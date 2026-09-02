@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+requests
+sqlalchemy
+alembic
+python-dotenv
+litellm
+pyjwt
+structlog
+ruff
+pytest
+httpx
+jinja2
+python-multipart
