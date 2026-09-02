@@ -1,0 +1,7 @@
+{
+  "max_discount_pct": 10.0,
+  "max_order_value": 5000.0,
+  "max_refund_amount": 2000.0,
+  "allowed_skus": ["SKU-001", "SKU-002", "SKU-003"],
+  "hard_deny_multiplier": 2.0
+}
