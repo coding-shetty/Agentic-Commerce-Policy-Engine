@@ -10,11 +10,12 @@ Uses SQLite so the whole thing runs with zero external dependencies —
 fine for a buildathon demo, trivial to swap for Postgres later.
 """
 
-import sqlite3
 import json
-from datetime import datetime, timezone
+import sqlite3
 from contextlib import contextmanager
-from models import PolicyDecision
+from datetime import UTC, datetime
+
+from schemas import PolicyDecision
 
 DB_PATH = "audit_trail.db"
 
@@ -59,7 +60,7 @@ def log_decision(agent_id: str, decision: PolicyDecision, request_payload: dict)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 agent_id,
                 decision.action.value,
                 decision.decision.value,

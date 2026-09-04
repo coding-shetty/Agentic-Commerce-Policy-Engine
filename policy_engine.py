@@ -2,31 +2,20 @@
 policy_engine.py
 
 The core guardrail logic. Every function here is pure, deterministic Python —
-no LLM calls, no ambiguity. This is the module you point to in your pitch
-video when you explain "AI Judgment": the agent can reason in natural
-language about WHAT to request, but whether that request is ALLOWED is
-decided here, by rules a human wrote and can audit.
-
-Design principle: three-tier response, not a binary allow/deny.
-  1. Within bounds          -> APPROVED, executes immediately
-  2. Outside bounds, close  -> ESCALATED, held for human approval
-  3. Outside bounds, way off -> DENIED outright (protects against abuse/bad-faith asks)
-
-This tiering is itself a judgment call worth defending in your pitch:
-a request for 12% when the cap is 10% is a normal negotiation edge case
-and worth a human's 30 seconds. A request for 80% is not a negotiation,
-it's either a bug or an attack, and should never reach a human queue.
+no LLM calls, no ambiguity.
 """
 
 import uuid
-from models import (
-    DiscountRequest,
-    CheckoutRequest,
-    RefundRequest,
-    PolicyDecision,
-    PolicyConfig,
-    Decision,
+from decimal import Decimal
+
+from schemas import (
     ActionType,
+    CheckoutRequest,
+    Decision,
+    DiscountRequest,
+    PolicyConfig,
+    PolicyDecision,
+    RefundRequest,
 )
 
 
@@ -39,6 +28,7 @@ def check_discount(req: DiscountRequest, policy: PolicyConfig) -> PolicyDecision
             action=ActionType.DISCOUNT,
             reason=f"SKU '{req.sku}' is not in the allowed catalog for agent-initiated discounts.",
             bound_hit="allowed_skus",
+            policy_version=policy.version,
         )
 
     if req.requested_discount_pct <= cap:
@@ -46,6 +36,7 @@ def check_discount(req: DiscountRequest, policy: PolicyConfig) -> PolicyDecision
             decision=Decision.APPROVED,
             action=ActionType.DISCOUNT,
             reason=f"{req.requested_discount_pct}% is within the {cap}% cap for {req.sku}.",
+            policy_version=policy.version,
         )
 
     if req.requested_discount_pct <= cap * policy.hard_deny_multiplier:
@@ -59,6 +50,7 @@ def check_discount(req: DiscountRequest, policy: PolicyConfig) -> PolicyDecision
             ),
             bound_hit="max_discount_pct",
             escalation_id=escalation_id,
+            policy_version=policy.version,
         )
 
     return PolicyDecision(
@@ -69,6 +61,7 @@ def check_discount(req: DiscountRequest, policy: PolicyConfig) -> PolicyDecision
             f"{policy.hard_deny_multiplier}x the {cap}% cap — denied outright, not escalated."
         ),
         bound_hit="max_discount_pct",
+        policy_version=policy.version,
     )
 
 
@@ -79,10 +72,11 @@ def check_checkout(req: CheckoutRequest, policy: PolicyConfig) -> PolicyDecision
             action=ActionType.CHECKOUT,
             reason=f"SKU '{req.sku}' is not in the allowed catalog.",
             bound_hit="allowed_skus",
+            policy_version=policy.version,
         )
 
     gross = req.unit_price * req.quantity
-    net = gross * (1 - req.applied_discount_pct / 100)
+    net = gross * (Decimal("1") - req.applied_discount_pct / Decimal("100"))
 
     if req.applied_discount_pct > policy.max_discount_pct:
         return PolicyDecision(
@@ -94,6 +88,7 @@ def check_checkout(req: CheckoutRequest, policy: PolicyConfig) -> PolicyDecision
                 f"separately approved — refusing to let a bad discount slip through at checkout."
             ),
             bound_hit="max_discount_pct",
+            policy_version=policy.version,
         )
 
     if net > policy.max_order_value:
@@ -107,12 +102,14 @@ def check_checkout(req: CheckoutRequest, policy: PolicyConfig) -> PolicyDecision
             ),
             bound_hit="max_order_value",
             escalation_id=escalation_id,
+            policy_version=policy.version,
         )
 
     return PolicyDecision(
         decision=Decision.APPROVED,
         action=ActionType.CHECKOUT,
         reason=f"Order value ₹{net:.2f} is within the ₹{policy.max_order_value} cap.",
+        policy_version=policy.version,
     )
 
 
@@ -124,6 +121,7 @@ def check_refund(req: RefundRequest, policy: PolicyConfig) -> PolicyDecision:
             decision=Decision.APPROVED,
             action=ActionType.REFUND,
             reason=f"Refund of ₹{req.refund_amount:.2f} is within the ₹{cap} auto-approve cap.",
+            policy_version=policy.version,
         )
 
     if req.refund_amount <= cap * policy.hard_deny_multiplier:
@@ -137,6 +135,7 @@ def check_refund(req: RefundRequest, policy: PolicyConfig) -> PolicyDecision:
             ),
             bound_hit="max_refund_amount",
             escalation_id=escalation_id,
+            policy_version=policy.version,
         )
 
     return PolicyDecision(
@@ -147,4 +146,5 @@ def check_refund(req: RefundRequest, policy: PolicyConfig) -> PolicyDecision:
             f"{policy.hard_deny_multiplier}x the ₹{cap} cap — denied outright, flagged for review."
         ),
         bound_hit="max_refund_amount",
+        policy_version=policy.version,
     )

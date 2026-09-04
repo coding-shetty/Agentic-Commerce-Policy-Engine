@@ -1,0 +1,14 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+exclude = [".venv", "alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "I"]
+ignore = [
+  "B008",  # FastAPI's Depends(...) in argument defaults is the documented pattern
+  "UP042", # str+Enum (not StrEnum) is intentional for Pydantic v2 JSON serialization
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

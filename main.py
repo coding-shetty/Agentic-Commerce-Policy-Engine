@@ -18,13 +18,14 @@ showing the second call short-circuits instead of creating a second order.
 """
 
 import json
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import DiscountRequest, CheckoutRequest, RefundRequest, PolicyConfig
-import policy_engine
 import audit_log
 import escalation
+import policy_engine
+from schemas import CheckoutRequest, DiscountRequest, PolicyConfig, RefundRequest
 
 app = FastAPI(title="Agentic Commerce Policy Engine")
 
