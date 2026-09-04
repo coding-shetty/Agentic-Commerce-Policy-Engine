@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agentic Commerce Control Plane — Demo</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="top-nav"><a href="/">Demo</a><a href="/dashboard">Admin Dashboard</a></div>
+  <h1>Agentic Commerce Control Plane</h1>
+  <div class="subtitle">USER → AI AGENT → POLICY DECISION → HUMAN APPROVAL (if needed) → PAYMENT → AUDIT</div>
+
+  <div class="flow">
+    <span class="step">1. Login</span>→
+    <span class="step">2. Chat / negotiate a discount</span>→
+    <span class="step">3. Policy decision</span>→
+    <span class="step">4. Checkout (if approved)</span>→
+    <span class="step">5. Payment + Audit</span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>1. Login as agent</h2>
+      <input id="username" value="agent" placeholder="username" />
+      <input id="password" type="password" value="demo-password" placeholder="password" />
+      <button onclick="login()">Log in</button>
+      <div id="login-status" style="font-size:12px;color:var(--muted)"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. Try a scenario</h2>
+      <select id="sku">
+        <option>SKU-001</option>
+        <option>SKU-002</option>
+        <option>SKU-003</option>
+      </select>
+      <input id="discount" placeholder="requested discount %, e.g. 8" value="8" />
+      <button onclick="requestDiscount()">A. Request discount</button>
+      <button class="secondary" onclick="fillScenario(8)">8% (Approved)</button>
+      <button class="secondary" onclick="fillScenario(15)">15% (Escalated)</button>
+      <button class="secondary" onclick="fillScenario(60)">60% (Denied)</button>
+    </div>
+
+    <div class="panel">
+      <h2>3. Checkout (idempotent)</h2>
+      <input id="qty" placeholder="quantity" value="2" />
+      <input id="price" placeholder="unit price ₹" value="500" />
+      <input id="checkoutDiscount" placeholder="applied discount %" value="8" />
+      <input id="idemKey" placeholder="idempotency key" value="demo-order-abc123" />
+      <button onclick="checkout()">B. Checkout</button>
+      <button class="secondary" onclick="checkout()">Retry same key (idempotency test)</button>
+    </div>
+
+    <div class="panel">
+      <h2>4. Agent chat</h2>
+      <textarea id="chatMsg" rows="2">Can I get 8% off SKU-001?</textarea>
+      <button onclick="chat()">Send to agent</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>Result</h2>
+    <pre id="result">Log in, then try a scenario above.</pre>
+  </div>
+
+  <script>
+    let token = null;
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const resp = await fetch('/auth/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        token = data.access_token;
+        document.getElementById('login-status').textContent = `Logged in as ${username} (${data.role})`;
+      } else {
+        document.getElementById('login-status').textContent = 'Login failed: ' + JSON.stringify(data);
+      }
+    }
+
+    function fillScenario(pct) { document.getElementById('discount').value = pct; requestDiscount(); }
+
+    function authHeaders() {
+      if (!token) throw new Error('Log in first');
+      return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token};
+    }
+
+    function show(data) { document.getElementById('result').textContent = JSON.stringify(data, null, 2); }
+
+    async function requestDiscount() {
+      try {
+        const sku = document.getElementById('sku').value;
+        const pct = parseFloat(document.getElementById('discount').value);
+        const resp = await fetch('/discount', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({sku, requested_discount_pct: pct, order_value: 1200})
+        });
+        show(await resp.json());
+      } catch (e) { show({error: e.message}); }
+    }
+
+    async function checkout() {
+      try {
+        const sku = document.getElementById('sku').value;
+        const quantity = parseInt(document.getElementById('qty').value);
+        const unit_price = parseFloat(document.getElementById('price').value);
+        const applied_discount_pct = parseFloat(document.getElementById('checkoutDiscount').value);
+        const idempotency_key = document.getElementById('idemKey').value;
+        const resp = await fetch('/checkout', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({sku, quantity, unit_price, applied_discount_pct, idempotency_key})
+        });
+        show(await resp.json());
+      } catch (e) { show({error: e.message}); }
+    }
+
+    async function chat() {
+      try {
+        const sku = document.getElementById('sku').value;
+        const message = document.getElementById('chatMsg').value;
+        const resp = await fetch('/agent/chat', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({message, sku})
+        });
+        show(await resp.json());
+      } catch (e) { show({error: e.message}); }
+    }
+  </script>
+</body>
+</html>

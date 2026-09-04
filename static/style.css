@@ -1,0 +1,84 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #121822;
+  --border: #232b38;
+  --text: #e7ecf3;
+  --muted: #8a97a8;
+  --approved: #2fbf71;
+  --escalated: #e8b339;
+  --denied: #e5484d;
+  --accent: #5b8cff;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+  margin: 0;
+  padding: 24px;
+}
+h1 { font-size: 20px; margin-bottom: 4px; }
+.subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-top: 0; }
+input, select, button, textarea {
+  background: #0d131c;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  width: auto;
+  padding: 8px 16px;
+}
+button:hover { opacity: 0.9; }
+button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge.approved { background: rgba(47,191,113,0.15); color: var(--approved); }
+.badge.escalated { background: rgba(232,179,57,0.15); color: var(--escalated); }
+.badge.denied { background: rgba(229,72,77,0.15); color: var(--denied); }
+.row {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.row:last-child { border-bottom: none; }
+pre {
+  background: #0d131c;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.flow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; color: var(--muted); }
+.flow span.step { border: 1px solid var(--border); padding: 4px 10px; border-radius: 999px; }
+.top-nav { margin-bottom: 16px; font-size: 12px; }
+.top-nav a { color: var(--accent); text-decoration: none; margin-right: 16px; }

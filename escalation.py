@@ -10,8 +10,8 @@ since it shows you scoped the demo deliberately rather than skipping
 the human-in-the-loop step entirely.
 """
 
-import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from audit_log import _connect
 
 PENDING_TABLE_SQL = """
@@ -40,7 +40,7 @@ def route_to_human(escalation_id: str, payload: dict, reason: str):
     with _connect() as conn:
         conn.execute(
             "INSERT INTO pending_approvals (escalation_id, created_at, status, payload) VALUES (?, ?, 'pending', ?)",
-            (escalation_id, datetime.now(timezone.utc).isoformat(), json.dumps(payload)),
+            (escalation_id, datetime.now(UTC).isoformat(), json.dumps(payload)),
         )
     print(f"[ESCALATION] {escalation_id} routed to human review — reason: {reason}")
 

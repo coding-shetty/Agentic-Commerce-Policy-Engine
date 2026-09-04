@@ -7,14 +7,15 @@ no LLM calls, no ambiguity.
 
 import uuid
 from decimal import Decimal
+
 from schemas import (
-    DiscountRequest,
-    CheckoutRequest,
-    RefundRequest,
-    PolicyDecision,
-    PolicyConfig,
-    Decision,
     ActionType,
+    CheckoutRequest,
+    Decision,
+    DiscountRequest,
+    PolicyConfig,
+    PolicyDecision,
+    RefundRequest,
 )
 
 

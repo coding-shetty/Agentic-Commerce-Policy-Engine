@@ -1,9 +1,16 @@
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app import db_models  # noqa: E402,F401  (import registers all models on Base.metadata)
+from app.config import settings  # noqa: E402
+from app.database import Base  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,15 +21,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import os
-import sys
-from dotenv import load_dotenv
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-import db_models
+# Use the app's own DATABASE_URL (from env vars / .env) instead of the
+# placeholder in alembic.ini, so migrations always target the same
+# database the running app uses.
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
-load_dotenv()
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "sqlite:///./commerce.db"))
-target_metadata = db_models.Base.metadata
+# add your model's MetaData object here
+# for 'autogenerate' support
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

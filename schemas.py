@@ -8,9 +8,10 @@ Pydantic schemas for everything that flows through the policy engine:
 """
 
 from __future__ import annotations
-from enum import Enum
-from typing import Optional
+
 from decimal import Decimal
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -73,8 +74,8 @@ class PolicyDecision(BaseModel):
     decision: Decision
     action: ActionType
     reason: str
-    bound_hit: Optional[str] = None
-    escalation_id: Optional[str] = None
+    bound_hit: str | None = None
+    escalation_id: str | None = None
     policy_version: str
 
 

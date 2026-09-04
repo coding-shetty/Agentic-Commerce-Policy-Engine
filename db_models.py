@@ -1,8 +1,11 @@
 import enum
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Enum, JSON, DateTime, Numeric
+from datetime import UTC, datetime
+
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from database import Base
+
 
 class TransactionState(str, enum.Enum):
     CREATED = "CREATED"
@@ -35,8 +38,8 @@ class Transaction(Base):
     state = Column(Enum(TransactionState), default=TransactionState.CREATED)
     request_type = Column(String, nullable=False)  # discount, checkout, refund
     request_payload = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
     agent = relationship("Agent")
     idempotency_key = relationship("IdempotencyKey", back_populates="transaction", uselist=False)
@@ -50,7 +53,7 @@ class IdempotencyKey(Base):
     request_hash = Column(String, nullable=False)
     status = Column(String, nullable=False)
     response_payload = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     expires_at = Column(DateTime, nullable=True)
     
     transaction = relationship("Transaction", back_populates="idempotency_key")
@@ -66,7 +69,7 @@ class PolicyDecisionLog(Base):
     decision = Column(String, nullable=False)
     reason = Column(String, nullable=False)
     bound_hit = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC))
 
 class Escalation(Base):
     __tablename__ = "escalations"
@@ -75,7 +78,7 @@ class Escalation(Base):
     transaction_id = Column(String, ForeignKey("transactions.id"), nullable=False)
     status = Column(String, default="pending")  # pending, approved, denied
     reason = Column(String, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     resolved_at = Column(DateTime, nullable=True)
     resolved_by = Column(String, nullable=True)
 
@@ -91,7 +94,7 @@ class AuditEvent(Base):
     decision = Column(String, nullable=True)
     reason = Column(String, nullable=True)
     policy_version = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC))
     request_hash = Column(String, nullable=True)
     approval_status = Column(String, nullable=True)
     payment_status = Column(String, nullable=True)

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard — Agentic Commerce Control Plane</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="top-nav"><a href="/">Demo</a><a href="/dashboard">Admin Dashboard</a></div>
+  <h1>Admin Dashboard</h1>
+  <div class="subtitle">Pending approvals, transactions, and the audit trail — ADMIN role required.</div>
+
+  <div class="panel" style="margin-bottom:16px">
+    <h2>Admin login</h2>
+    <input id="username" value="admin" placeholder="username" />
+    <input id="password" type="password" value="demo-password" placeholder="password" />
+    <button onclick="login()">Log in</button>
+    <button class="secondary" onclick="refreshAll()">Refresh</button>
+    <div id="login-status" style="font-size:12px;color:var(--muted)"></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Pending approvals</h2>
+      <div id="approvals"></div>
+    </div>
+    <div class="panel">
+      <h2>Recent transactions</h2>
+      <div id="transactions"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>Audit trail (latest 30)</h2>
+    <div id="audit"></div>
+  </div>
+
+  <script>
+    let token = null;
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const resp = await fetch('/auth/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        token = data.access_token;
+        document.getElementById('login-status').textContent = `Logged in as ${username} (${data.role})`;
+        refreshAll();
+      } else {
+        document.getElementById('login-status').textContent = 'Login failed';
+      }
+    }
+
+    function headers() { return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}; }
+
+    async function refreshAll() {
+      if (!token) return;
+      await Promise.all([loadApprovals(), loadTransactions(), loadAudit()]);
+    }
+
+    async function loadApprovals() {
+      const resp = await fetch('/approvals', {headers: headers()});
+      const data = await resp.json();
+      const el = document.getElementById('approvals');
+      if (!data.length) { el.innerHTML = '<div class="row">No pending approvals.</div>'; return; }
+      el.innerHTML = data.map(a => `
+        <div class="row">
+          <div>
+            <div>${a.transaction_id.slice(0,8)} — ${a.reason || ''}</div>
+          </div>
+          <div>
+            <button onclick="resolve('${a.id}', true)">Approve</button>
+            <button class="secondary" onclick="resolve('${a.id}', false)">Reject</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function resolve(id, approve) {
+      const path = approve ? `/approve/${id}` : `/reject/${id}`;
+      const resp = await fetch(path, {method: 'POST', headers: headers(), body: JSON.stringify({})});
+      await resp.json();
+      refreshAll();
+    }
+
+    async function loadTransactions() {
+      const resp = await fetch('/transactions?limit=20', {headers: headers()});
+      const data = await resp.json();
+      const el = document.getElementById('transactions');
+      el.innerHTML = data.map(t => `
+        <div class="row">
+          <div>${t.id.slice(0,8)} · ${t.action_type} · ${t.sku || ''}</div>
+          <div><span class="badge ${t.policy_decision || ''}">${t.status}</span></div>
+        </div>`).join('') || '<div class="row">No transactions yet.</div>';
+    }
+
+    async function loadAudit() {
+      const resp = await fetch('/audit?limit=30', {headers: headers()});
+      const data = await resp.json();
+      const el = document.getElementById('audit');
+      el.innerHTML = data.map(e => `
+        <div class="row">
+          <div>${e.timestamp.slice(11,19)} · ${e.event_type} · ${(e.transaction_id||'').slice(0,8)}</div>
+          <div><span class="badge ${e.decision || ''}">${e.decision || ''}</span></div>
+        </div>`).join('') || '<div class="row">No audit events yet.</div>';
+    }
+  </script>
+</body>
+</html>
